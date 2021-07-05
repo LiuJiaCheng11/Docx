@@ -110,6 +110,7 @@ namespace Docx.Core
         /// <returns>入参本身</returns>
         public static OpenXmlElement SetInnerText(this OpenXmlElement element, string innerText)
         {
+            //数组的内容形如XX,X ,{,XXX,}, XXX，不能保证断句后{}里的内容一定是连续完整
             var texts = element.Descendants<Text>().ToList();
             var isFirst = true;
             foreach (var text in texts)

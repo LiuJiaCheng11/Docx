@@ -22,7 +22,7 @@ namespace Docx.Core
         {
             var export = string.IsNullOrEmpty(modCode)
                 ? new ExportDocxDefault()
-                : new StudentDocxExport(); //这里应该使用以来注入获得对应的实现，这里为了简化逻辑，直接就new了一个
+                : new RecordDocxExport(); //这里应该使用依赖注入获得对应的实现，这里为了简化逻辑，直接就new了一个
             if (!System.IO.File.Exists(templateFullPath))
             {
                 return new byte[0];
@@ -93,11 +93,11 @@ namespace Docx.Core
                         continue;
                     }
 
-                    //数据行
+                    //数据行，循环次数为所有行数据的最小值，如混用时，XX数组长度为2，YY数组长度为3，那么循环到第3行，报错退出
                     var index = 0;
                     var delRow = row;
                     var addRows = new List<TableRow>();
-                    while (index < 999) //防止死循环，如{{XX[0]:YY}}没有用上index，就不会抛异常ArgumentOutOfRangeException
+                    while (index < 999) //防止死循环，如{{XX[0]:YY}}没有用上index，就不会抛异常
                     {
                         var cloneRow = (TableRow)row.Clone();
                         try
@@ -146,7 +146,7 @@ namespace Docx.Core
             IExportDocx export, int index = -1)
         {
             //paragraph为1个段落内容，如果是表格的话，则是一个格子的内容
-            //断句，数组的内容形如XX,X ,{,XXX,}, XXX，不能保证断句后{}里的内容一定是连续完整
+            
             //不确定paragraph.InnerText(string)的内容是否就是断句后的Text(string)的相加后的结果，所以先不用它，用自己组装的allText
             if (paragraph.InnerText.Contains("□"))
             {
@@ -263,13 +263,14 @@ namespace Docx.Core
             var rangeEntities = (IEnumerable<object>)entity.Getter(arrayProp);
             if (rangeEntities == null || index <= -1)
             {
-                return null;
+                throw new ArgumentOutOfRangeException();
             }
 
             //这里超出数组会抛异常
             var result = rangeEntities.ElementAt(index);
             return result;
         }
+
         /// <summary>
         /// 获取值（兼容InnerText是XX:YY形式）
         /// </summary>
@@ -280,7 +281,7 @@ namespace Docx.Core
         /// <returns></returns>
         private static string GetValue(this object entity, string innerText, int index, IExportDocx export)
         {
-            string value = innerText;
+            var value = innerText;
             if (innerText.Contains(export.RangeSplitText))
             {
                 var array = innerText.Split(export.RangeSplitText);

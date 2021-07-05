@@ -51,9 +51,9 @@ namespace Docx.Core
         /// 替换特殊标签
         /// </summary>
         /// <param name="entity">数据模型</param>
-        /// <param name="innerText">innerText</param>
+        /// <param name="propName">innerText</param>
         /// <returns>替换后的内容</returns>
-        string GetValue(object entity, string innerText);
+        string GetValue(object entity, string propName);
     }
 
     /// <summary>
@@ -108,9 +108,9 @@ namespace Docx.Core
             return new Regex(pattern);
         }
 
-        public virtual string GetValue(object entity, string innerText)
+        public virtual string GetValue(object entity, string propName)
         {
-            var value = entity.Getter(innerText);
+            var value = entity.Getter(propName);
             return value?.ToString();
         }
     }
