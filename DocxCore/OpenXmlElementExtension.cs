@@ -12,6 +12,25 @@ namespace Docx.Core
     public static class OpenXmlElementExtension
     {
         /// <summary>
+        /// Docx的全局的命名空间，每个元素需要有形如特性xmlns:w=NameSpace
+        /// </summary>
+        public static readonly string NameSpace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+        /// <summary>
+        /// 给xml加上命名空间，仅用于从OuterXml中复制出来的xml元素，在ToOpenXmlElement之前调用
+        /// </summary>
+        /// <param name="xml"></param>
+        /// <returns></returns>
+        public static string AddNameSpace(this string xml)
+        {
+            xml = xml.Trim();
+            var regex = RegexExtension.GetInnerTextRegex("<", ":");
+            var ns = xml.FirstMatchOrDefault(regex);
+            var spaceRegex = new Regex(" ");
+            var replace = spaceRegex.Replace(xml, $" xmlns:{ns}=\"{NameSpace}\" ", 1);
+            return replace;
+        }
+
+        /// <summary>
         /// Xml转OpenXmlElement
         /// </summary>
         /// <param name="xml"></param>
@@ -67,6 +86,7 @@ namespace Docx.Core
         {
             return (OpenXmlElement)openXmlElement.Clone();
         }
+
         /// <summary>
         /// 节点替换，并返回父级节点
         /// </summary>
@@ -274,7 +294,7 @@ namespace Docx.Core
         /// <param name="element"></param>
         /// <param name="text">文字</param>
         /// <param name="xml">xml</param>
-        /// <param name="indexes">第几个该文字替换，从0开始计算，null则全部替换，空数组不会替换</param>
+        /// <param name="indexes">第几个text替换，从0开始计算，null则全部替换，空数组不会替换</param>
         /// <returns></returns>
         public static OpenXmlElement ReplaceInnerTextToXml(this OpenXmlElement element, string text, string xml,
             List<int> indexes = null)

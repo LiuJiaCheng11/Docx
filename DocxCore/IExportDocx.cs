@@ -5,12 +5,19 @@ namespace Docx.Core
     /// <summary>
     /// 导出Docx文件的参数
     /// </summary>
+    /// <summary>
+    /// 导出Docx文件的参数
+    /// </summary>
     public interface IExportDocx
     {
         /// <summary>
-        /// 表示此处应重复替换，并换行显示，此符号前面的为数组，此符号后面的为数组的字段，形如{}
+        /// 表示此处应重复替换，并换行显示，此符号前面的为数组，此符号后面的为数组的字段，形如{{XX:YY}}
         /// </summary>
         string RangeSplitText { get; set; }
+        /// <summary>
+        /// 表示此处有特性，
+        /// </summary>
+        string AttributeSplitText { get; set; }
         /// <summary>
         /// 匹配普通文本
         /// </summary>
@@ -62,50 +69,78 @@ namespace Docx.Core
     public class ExportDocxDefault : IExportDocx
     {
         public virtual string RangeSplitText { get; set; } = ":";
-
+        public string AttributeSplitText { get; set; } = "|";
         public virtual string TextLeft { get; set; } = "{";
         public virtual string TextRight { get; set; } = "}";
         public virtual string TableTextLeft { get; set; } = "{{";
         public virtual string TableTextRight { get; set; } = "}}";
 
+        protected Regex TextRegex;
         public virtual Regex GetTextRegex()
         {
+            if (TextRegex != null)
+            {
+                return TextRegex;
+            }
+
             var left = TextLeft.GetPattern();
             var right = TextRight.GetPattern();
             var rangeSplitText = RangeSplitText.GetPattern();
             var inner = "[^" + left + right + rangeSplitText + "]*?";
             var pattern = left + inner + right;
-            return new Regex(pattern);
+            TextRegex = new Regex(pattern);
+            return TextRegex;
         }
 
+        protected Regex InnerTextRegex;
         public virtual Regex GetInnerTextRegex()
         {
+            if (InnerTextRegex != null)
+            {
+                return InnerTextRegex;
+            }
+
             var left = TextLeft.GetPattern();
             var right = TextRight.GetPattern();
             var rangeSplitText = RangeSplitText.GetPattern();
             var inner = "[^" + left + right + rangeSplitText + "]*?";
             var pattern = "(?<=" + left + ")(" + inner + ")(?=" + right + ")";
-            return new Regex(pattern);
+            InnerTextRegex = new Regex(pattern);
+            return InnerTextRegex;
         }
 
+        protected Regex TableTextRegex;
         public virtual Regex GetTableTextRegex()
         {
+            if (TableTextRegex != null)
+            {
+                return TableTextRegex;
+            }
+
             var left = TableTextLeft.GetPattern();
             var right = TableTextRight.GetPattern();
             var rangeSplitText = RangeSplitText.GetPattern();
             var inner = ".*?" + rangeSplitText + ".*?";
             var pattern = left + inner + right;
-            return new Regex(pattern);
+            TableTextRegex = new Regex(pattern);
+            return TableTextRegex;
         }
 
+        protected Regex TableInnerTextRegex;
         public virtual Regex GetTableInnerTextRegex()
         {
+            if (TableInnerTextRegex != null)
+            {
+                return TableInnerTextRegex;
+            }
+
             var left = TableTextLeft.GetPattern();
             var right = TableTextRight.GetPattern();
             var rangeSplitText = RangeSplitText.GetPattern();
             var inner = ".*?" + rangeSplitText + ".*?";
             var pattern = "(?<=" + left + ")(" + inner + ")(?=" + right + ")";
-            return new Regex(pattern);
+            TableInnerTextRegex = new Regex(pattern);
+            return TableInnerTextRegex;
         }
 
         public virtual string GetValue(object entity, string propName)

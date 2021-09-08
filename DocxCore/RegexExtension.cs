@@ -21,11 +21,11 @@ namespace Docx.Core
         /// 获取字符串中第一个匹配正则的InnerText
         /// </summary>
         /// <param name="text"></param>
-        /// <param name="innerRegex"></param>
+        /// <param name="regex"></param>
         /// <returns></returns>
-        public static string FirstMatchOrDefault(this string text, Regex innerRegex)
+        public static string FirstMatchOrDefault(this string text, Regex regex)
         {
-            var match = innerRegex.Match(text);
+            var match = regex.Match(text);
             if (!match.Success)
             {
                 return string.Empty;
@@ -68,14 +68,32 @@ namespace Docx.Core
         }
 
         /// <summary>
-        /// 获取匹配列表字符串的所有字符串
+        /// 获取匹配列表字符串的所有字符串的Regex
         /// </summary>
         /// <param name="textList"></param>
         /// <returns></returns>
-        public static Regex GetTextRegex(this List<string> textList)
+        public static Regex GetListRegex(this List<string> textList)
         {
             var pattern = string.Join("|", textList);
             return new Regex(pattern);
+        }
+        /// <summary>
+        /// 获取匹配中间内容的Regex（非贪婪匹配）
+        /// </summary>
+        /// <param name="left">需要自行转义</param>
+        /// <param name="right">需要自行转义</param>
+        /// <param name="inner">需要自行转义</param>
+        /// <returns></returns>
+        public static Regex GetInnerTextRegex(string left, string right, string inner = "")
+        {
+            if (string.IsNullOrEmpty(inner))
+            {
+                inner = ".*?";
+            }
+
+            var pattern = "(?<=" + left + ")(" + inner + ")(?=" + right + ")";
+            var result = new Regex(pattern);
+            return result;
         }
 
         /// <summary>
@@ -86,7 +104,7 @@ namespace Docx.Core
         /// <returns></returns>
         public static string ReplaceByDictionary(this string text, Dictionary<string, string> dictionary)
         {
-            var regex = dictionary.Keys.ToList().GetTextRegex();
+            var regex = dictionary.Keys.ToList().GetListRegex();
             var result = text.ReplaceByDictionary(dictionary, regex);
             return result;
         }

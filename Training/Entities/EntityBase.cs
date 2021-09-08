@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Docx.Entities
+﻿namespace Training.Entities
 {
     /// <summary>
     /// 基类
