@@ -2,6 +2,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -18,15 +19,18 @@ namespace Docx.Core
         /// <summary>
         /// 给xml加上命名空间，仅用于从OuterXml中复制出来的xml元素，在ToOpenXmlElement之前调用
         /// </summary>
-        /// <param name="xml"></param>
+        /// <param name="xml">xml格式的字符串</param>
         /// <returns></returns>
         public static string AddNameSpace(this string xml)
         {
             xml = xml.Trim();
             var regex = RegexExtension.GetInnerTextRegex("<", ":");
             var ns = xml.FirstMatchOrDefault(regex);
-            var spaceRegex = new Regex(" ");
-            var replace = spaceRegex.Replace(xml, $" xmlns:{ns}=\"{NameSpace}\" ", 1);
+            var spaceIndex = xml.IndexOf(" ", StringComparison.Ordinal);
+            var gtIndex = xml.IndexOf(">", StringComparison.Ordinal);
+            var replaceChar = spaceIndex != -1 && spaceIndex < gtIndex ? " " : ">";
+            var spaceRegex = new Regex(replaceChar);
+            var replace = spaceRegex.Replace(xml, $" xmlns:{ns}=\"{NameSpace}\"{replaceChar}", 1);
             return replace;
         }
 
@@ -354,6 +358,29 @@ namespace Docx.Core
         {
             element.SetInnerText(element.InnerText.ReplaceByDictionary(replaces));
             return element;
+        }
+
+        /// <summary>
+        /// 在ChildElements的最前头添加一个新的<see cref="T:DocumentFormat.OpenXml.OpenXmlElement" />
+        /// </summary>
+        /// <param name="element">父<see cref="T:DocumentFormat.OpenXml.OpenXmlElement" /></param>
+        /// <param name="newChild">子<see cref="T:DocumentFormat.OpenXml.OpenXmlElement" />(准备添加)</param>
+        /// <returns>已添加的<see cref="T:DocumentFormat.OpenXml.OpenXmlElement" /></returns>
+        [return: NotNullIfNotNull("newChild")]
+        public static OpenXmlElement PrependChildIfNotExist(this OpenXmlElement element, OpenXmlElement newChild)
+        {
+            if (newChild == null)
+            {
+                return element.PrependChild(newChild);
+            }
+
+            var child = element.ChildElements.FirstOrDefault(c => c.LocalName == newChild.LocalName);
+            if (child == null)
+            {
+                return element.PrependChild(newChild);
+            }
+
+            return child;
         }
     }
 }

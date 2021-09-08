@@ -92,59 +92,60 @@ namespace Docx.Core
                     }
 
                     var cells = row.Descendants<TableCell>().ToList();
-                    var hasMerge = false;
-                    var needMergeColumns = new string[cells.Count, 2]; //lastValue
-                    var index = 0;
+                    var mergeParas = new List<MergePara>();
+                    var column = 1;
                     foreach (var cell in cells)
                     {
-                        var needMerge = "0";
                         if (cell.InnerText.HasAttribute("Merge", export.AttributeSplitText, innerRegex))
                         {
-                            needMerge = "1";
-                            hasMerge = true;
+                            mergeParas.Add(new MergePara
+                            {
+                                Column = column
+                            });
                         }
 
-                        needMergeColumns[index, 0] = needMerge;
-                        ++index;
+                        column++;
                     }
 
                     var repRows = GetReplaceElements(row, entity, rowReg, innerRegex, export);
-                    if (hasMerge)
+                    if (mergeParas.Any())
                     {
                         var isFirst = true;
                         foreach (var repRow in repRows)
                         {
-                            index = 0;
+                            column = 1;
                             foreach (var cell in repRow.Descendants<TableCell>())
                             {
-                                if (needMergeColumns[index, 0] == "0")
+                                var mergePara = mergeParas.FirstOrDefault(c => c.Column == column);
+                                if (mergePara == null)
                                 {
-                                    ++index;
+                                    //没有标记要合并，跳过
+                                    column++;
                                     continue;
                                 }
 
-                                var tcPr = cell.ChildElements.FirstOrDefault(c => c.LocalName == "tcPr");
-                                if (tcPr == null)
+                                //保证标记了要合并的Element的tcPr子Element必存在
+                                var tcPr = cell.PrependChildIfNotExist("<w:tcPr></w:tcPr>".AddNameSpace()
+                                    .ToOpenXmlElement());
+                                if (mergePara.LastCell != null && mergePara.LastCell.InnerText == cell.InnerText)
                                 {
-                                    ++index;
-                                    continue;
-                                }
-
-                                if (isFirst || needMergeColumns[index, 1] != cell.InnerText)
-                                {
-                                    var vMerge = "<w:vMerge w:val=\"restart\"/>".AddNameSpace().ToOpenXmlElement();
-                                    tcPr.InsertAfter(vMerge, tcPr.LastChild);
-                                    var vAlign = "<w:vAlign w:val = \"center\" />".AddNameSpace().ToOpenXmlElement();
-                                    tcPr.InsertAfter(vAlign, tcPr.LastChild);
-                                    needMergeColumns[index, 1] = cell.InnerText;
+                                    var lastTcPr = mergePara.LastCell.ChildElements.First(c => c.LocalName == "tcPr");
+                                    lastTcPr.PrependChildIfNotExist("<w:vAlign w:val = \"center\" />".AddNameSpace()
+                                        .ToOpenXmlElement());
+                                    lastTcPr.PrependChildIfNotExist("<w:vMerge w:val=\"restart\"/>".AddNameSpace()
+                                        .ToOpenXmlElement());
+                                    tcPr.PrependChildIfNotExist("<w:vMerge w:val=\"continue\"/>".AddNameSpace()
+                                        .ToOpenXmlElement());
                                 }
                                 else
                                 {
-                                    var vContinue = "<w:vMerge w:val=\"continue\"/>".AddNameSpace().ToOpenXmlElement();
-                                    tcPr.InsertAfter(vContinue, tcPr.LastChild);
+                                    //没有合并的，就添加样式居中
+                                    tcPr.PrependChildIfNotExist("<w:vAlign w:val = \"center\" />".AddNameSpace()
+                                        .ToOpenXmlElement());
                                 }
 
-                                ++index;
+                                mergePara.LastCell = cell;
+                                column++;
                             }
 
                             if (isFirst)
@@ -162,6 +163,13 @@ namespace Docx.Core
                     replaceRow.Key.Replace(replaceRow.Value);
                 }
             }
+        }
+
+        private class MergePara
+        {
+            public int Column { get; set; }
+
+            public TableCell LastCell { get; set; } = null;
         }
 
         /// <summary>
