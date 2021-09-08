@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DocxCore\Docx.Core.csproj" />
+    <ProjectReference Include="..\Docx.Core\Docx.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
