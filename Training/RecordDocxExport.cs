@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using Docx.Core;
 using Training.Entities;
@@ -11,7 +12,7 @@ namespace Training
     /// </summary>
     public class RecordDocxExport : ExportDocxDefault
     {
-        public override string GetValue(object entity, string propName)
+        public override string GetValue(object entity, string propName, Dictionary<string, string> attributes)
         {
             if (propName == "Resume.MedicalConsortiumInt")
             {
@@ -47,21 +48,34 @@ namespace Training
                 return string.Empty;
             }
 
-            var result = value.ToString();
-            if (propName.EndsWith("Gender") && bool.TryParse(result, out var gender))
+            string result;
+            attributes.TryGetValue("Format", out var format); //格式
+            attributes.TryGetValue("Append", out var append); //额外附加的字符串
+            if (DateTime.TryParse(value.ToString(), out var time))
+            {
+                //给时间一个默认Format，省的Docx里面的都加Format
+                result = time.ToString(string.IsNullOrEmpty(format) ? "yyyy年MM月dd日" : format,
+                    new CultureInfo("zh-chs"));
+            }
+            else if (propName.EndsWith("Gender") && bool.TryParse(value.ToString(), out var gender))
             {
                 result = gender ? "男" : "女";
             }
-            else if (propName.EndsWith("Marital") && int.TryParse(result, out var marital))
+            else if (propName.EndsWith("Marital"))
             {
-                result = ((Marital)marital).GetDescription();
+                result = ((Marital)value).GetDescription();
             }
-            else if (DateTime.TryParse(result, out var time))
+            else
             {
-                result = time.ToString("yyyy年MM月dd日");
+                result = value.ToString(format);
             }
 
-            return result;
+            if (string.IsNullOrEmpty(result))
+            {
+                return result;
+            }
+
+            return result + append;
         }
     }
 }

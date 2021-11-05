@@ -376,7 +376,8 @@ namespace Docx.Core
                     foreach (var kvp in filterDic)
                     {
                         var val = rangeEntity.GetValue(kvp.Key, -1, export);
-                        if (val != kvp.Value)
+                        var regex = new Regex(kvp.Value);
+                        if (!regex.IsMatch(val))
                         {
                             return false;
                         }
@@ -390,7 +391,7 @@ namespace Docx.Core
             var result = rangeEntities.ElementAt(index);
             return result;
         }
-
+        
         /// <summary>
         /// 获取值（兼容InnerText是XX:YY|ZZ|AA=??形式）
         /// </summary>
@@ -403,6 +404,13 @@ namespace Docx.Core
         {
             var value = innerText;
             var field = innerText.GetFirstStr(export.AttributeSplitText);
+            var attributes = innerText.GetAttributeDic(export.AttributeSplitText);
+            var filterDic = attributes.Clone();
+            foreach (var specialAttribute in SpecialAttributes)
+            {
+                filterDic.Remove(specialAttribute);
+            }
+
             if (field.Contains(export.RangeSplitText))
             {
                 var array = field.Split(export.RangeSplitText);
@@ -412,14 +420,12 @@ namespace Docx.Core
                     return value;
                 }
 
-                var attributes = innerText.GetAttributes(export.AttributeSplitText);
-                var filterDic = attributes.GetFilterDic();
                 var arrayItemEntity = entity.GetArrayItem(array[0], index, export, filterDic);
-                value = export.GetValue(arrayItemEntity, array[1]);
+                value = export.GetValue(arrayItemEntity, array[1], attributes);
             }
             else
             {
-                value = export.GetValue(entity, field);
+                value = export.GetValue(entity, field, attributes);
             }
 
             return value;
@@ -475,28 +481,25 @@ namespace Docx.Core
             return result;
         }
         /// <summary>
-        /// 获取筛选数组的字典
+        /// 获取所有属性（字典）
         /// </summary>
-        /// <param name="attributes"></param>
+        /// <param name="innerText"></param>
+        /// <param name="attributeSplitText"></param>
         /// <returns></returns>
-        private static Dictionary<string, string> GetFilterDic(this List<string> attributes)
+        private static Dictionary<string, string> GetAttributeDic(this string innerText, string attributeSplitText)
         {
-            var filterDic = new Dictionary<string, string>();
+            var attributes = innerText.GetAttributes(attributeSplitText);
+            var result = new Dictionary<string, string>();
             foreach (var attribute in attributes)
             {
-                if (!attribute.Contains("="))
-                {
-                    continue;
-                }
-
                 var arr = attribute.Split("=");
-                if (arr.Length == 0)
+                if (arr.Length != 1 && arr.Length != 2)
                 {
                     continue;
                 }
 
                 var key = arr[0].Trim();
-                if (filterDic.ContainsKey(key))
+                if (result.ContainsKey(key))
                 {
                     continue;
                 }
@@ -507,10 +510,16 @@ namespace Docx.Core
                     val = arr[1].Trim();
                 }
 
-                filterDic.Add(key, val);
+                result.Add(key, val);
             }
 
-            return filterDic;
+            return result;
         }
+        private static readonly List<string> SpecialAttributes = new List<string>()
+        {
+            "Merge", //合并单元格
+            "Format", //输出的格式
+            "Append" //不为空时，额外附加的字符串
+        };
     }
 }

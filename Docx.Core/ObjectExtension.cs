@@ -174,5 +174,37 @@ namespace Docx.Core
                 return data.GetPropertyValue<object>(fieldName);
             return (object)null;
         }
+
+        /// <summary>Clone Object</summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source"></param>
+        /// <returns></returns>
+        public static T Clone<T>(this T source) => JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject((object)source));
+
+        /// <summary>
+        /// object带格式的ToString
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="format"></param>
+        /// <param name="provider"></param>
+        /// <returns></returns>
+        public static string ToString(this object obj, string format, IFormatProvider provider = null)
+        {
+            try
+            {
+                if (obj is IFormattable)
+                {
+                    var temp = "{0:" + format + "}";
+                    var result = string.Format(provider ?? new DefaultFormatter(), temp, obj);
+                    return result;
+                }
+
+                return obj != null ? obj.ToString() : string.Empty;
+            }
+            catch (FormatException)
+            {
+                return format;
+            }
+        }
     }
 }

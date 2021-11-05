@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Docx.Core
 {
@@ -54,13 +55,15 @@ namespace Docx.Core
         /// </summary>
         /// <returns></returns>
         Regex GetTableInnerTextRegex();
+
         /// <summary>
-        /// 替换特殊标签
+        /// 字段输出值
         /// </summary>
         /// <param name="entity">数据模型</param>
-        /// <param name="propName">innerText</param>
+        /// <param name="propName">字段名</param>
+        /// <param name="attributes">导出的属性</param>
         /// <returns>替换后的内容</returns>
-        string GetValue(object entity, string propName);
+        string GetValue(object entity, string propName, Dictionary<string, string> attributes);
     }
 
     /// <summary>
@@ -143,10 +146,18 @@ namespace Docx.Core
             return TableInnerTextRegex;
         }
 
-        public virtual string GetValue(object entity, string propName)
+        public virtual string GetValue(object entity, string propName, Dictionary<string, string> attributes)
         {
             var value = entity.Getter(propName);
-            return value?.ToString();
+            attributes.TryGetValue("Format", out var format); //格式
+            attributes.TryGetValue("Append", out var append); //额外附加的字符串
+            var result = value?.ToString(format);
+            if (string.IsNullOrEmpty(result))
+            {
+                return result;
+            }
+
+            return result + append;
         }
     }
 }
